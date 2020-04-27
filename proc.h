@@ -49,10 +49,10 @@ struct proc {
   struct file *ofile[NOFILE];  // Open files
   struct inode *cwd;           // Current directory
   char name[16];               // Process name (debugging)
-  uint pending 		   		   // Pending Signals
-  uint mask			   		   // Signal Mask
-  void* handlers		       // Signal Handlers
-  struct trapframe* backup 	   // User Trap Trame Backup
+  uint pending; 			   // Pending Signals
+  uint mask;				   // Signal Mask
+  struct sigaction* handlers[32]; // Signal Handlers
+  struct trapframe* backup;	   // User Trap Trame Backup
 };
 
 // Process memory is laid out contiguously, low addresses first:
@@ -61,4 +61,9 @@ struct proc {
 //   fixed-size stack
 //   expandable heap
 
-// 
+// Struct for signal handler
+struct sigaction {
+	void (*sa_handler) (int);
+	uint sigmask;
+};
+

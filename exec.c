@@ -93,6 +93,18 @@ exec(char *path, char **argv)
       last = s+1;
   safestrcpy(curproc->name, last, sizeof(curproc->name));
 
+
+  // Reset custom signal handlers
+  struct sigaction* sig;
+  int j;
+  for(j = 0; j < 32; j++){
+    sig = curproc->handlers[j];
+    if(sig == (struct sigaction*) SIG_DFL || sig == (struct sigaction*) SIG_IGN)
+      continue;
+    sig = SIG_DFL;
+  }  
+
+
   // Commit to the user image.
   oldpgdir = curproc->pgdir;
   curproc->pgdir = pgdir;
