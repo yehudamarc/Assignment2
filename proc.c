@@ -551,3 +551,16 @@ procdump(void)
     cprintf("\n");
   }
 }
+
+// Change process signal mask
+// return old signal mask value
+uint
+sigprocmask(uint mask){
+
+  uint old_mask;
+
+  old_mask = myproc()->mask;
+  myproc()->mask = mask;
+
+  return old_mask;
+}

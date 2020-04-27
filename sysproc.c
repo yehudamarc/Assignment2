@@ -89,3 +89,14 @@ sys_uptime(void)
   release(&tickslock);
   return xticks;
 }
+
+int
+sys_sigprocmask(void)
+{
+  int mask;
+  //@TODO: check if needed to cast/change to uint
+  if(argint(0, &mask) < 0)
+    return -1;
+
+  return sigprocmask(mask);
+}
