@@ -188,3 +188,10 @@ void            clearpteu(pde_t *pgdir, char *uva);
 
 // number of elements in fixed-size array
 #define NELEM(x) (sizeof(x)/sizeof((x)[0]))
+
+// Signals deifintion
+#define SIG_DFL 0 // default signal handling
+#define SIG_IGN 1 // ignore signal 
+#define SIGKILL 9
+#define SIGSTOP 17
+#define SIGCONT 19
