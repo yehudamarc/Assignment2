@@ -115,11 +115,12 @@ sys_sigprocmask(void)
 int
 sys_sigaction(void)
 {
-  cprintf("I'm here!!\n");
+  // cprintf("I'm here!!\n");
   int signum;
   const struct sigaction* act;
   struct sigaction* oldact;
 
+  // Get arguments from stack
   if(argint(0, &signum) < 0)
     return -1;
   if(argptr(1, ((void*)&act),sizeof(*act)) < 0)
@@ -128,4 +129,13 @@ sys_sigaction(void)
     return -1;
 
   return sigaction(signum, act, oldact);
+}
+
+int
+sys_sigret(void)
+{
+
+
+
+  return 0;
 }
