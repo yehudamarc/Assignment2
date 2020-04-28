@@ -61,9 +61,12 @@ struct proc {
 //   fixed-size stack
 //   expandable heap
 
+/*
 // Struct for signal handler
 struct sigaction {
 	void (*sa_handler) (int);
 	uint sigmask;
 };
+*/
+#define NULL ((void*) 0)
 

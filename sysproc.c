@@ -39,6 +39,17 @@ sys_kill(void)
 int
 sys_getpid(void)
 {
+
+  // myproc()->handlers[10]->sa_handler(10);
+
+  // void (*ptr) (int) 
+  // if(ptr == NULL)
+  //   cprintf("ptr is null\n");
+  // else{
+  //   cprintf("ptr is not null\n");
+  //   cprintf("%d\n", ptr);
+  //   ptr(10);
+
   return myproc()->pid;
 }
 
@@ -99,4 +110,22 @@ sys_sigprocmask(void)
     return -1;
 
   return sigprocmask(mask);
+}
+
+int
+sys_sigaction(void)
+{
+  cprintf("I'm here!!\n");
+  int signum;
+  const struct sigaction* act;
+  struct sigaction* oldact;
+
+  if(argint(0, &signum) < 0)
+    return -1;
+  if(argptr(1, ((void*)&act),sizeof(*act)) < 0)
+    return -1;
+  if(argptr(2, ((void*)&oldact),sizeof(*oldact)) < 0)
+    return -1;
+
+  return sigaction(signum, act, oldact);
 }

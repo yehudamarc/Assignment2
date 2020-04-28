@@ -99,9 +99,9 @@ exec(char *path, char **argv)
   int j;
   for(j = 0; j < 32; j++){
     sig = curproc->handlers[j];
-    if(sig == (struct sigaction*) SIG_DFL || sig == (struct sigaction*) SIG_IGN)
+    if(sig->sa_handler == (void (*) (int)) SIG_DFL || sig->sa_handler == (void (*) (int)) SIG_IGN)
       continue;
-    sig = SIG_DFL;
+    sig->sa_handler = (void (*) (int)) SIG_DFL;
   }  
 
 

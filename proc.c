@@ -564,3 +564,37 @@ sigprocmask(uint mask){
 
   return old_mask;
 }
+
+int
+sigaction (int signum, const struct sigaction* act, struct sigaction* oldact)
+{
+  // if trying to modify SIGKILL or SIGSTOP - fail
+  if(signum == SIGKILL || signum == SIGSTOP)
+    return -1;
+  // No such signal
+  if(signum < 0 || signum > 31)
+    return -1;
+  // Save the old handler
+  if(oldact != NULL){
+    // oldact = myproc()->handlers[signum];
+    // cprintf("%s%d\n", "act1: ", act);
+    // cprintf("%s%d\n", "act2: ", oldact);
+    // cprintf("%s%d\n", "act2->sa_handler: ", oldact->sa_handler);
+    // cprintf("%s%d\n", "act1->sa_handler: ", act->sa_handler);
+    // cprintf("%s%d\n", "handlers[signum]: " ,myproc()->handlers[signum]->sa_handler);
+    oldact->sa_handler = myproc()->handlers[signum]->sa_handler;
+    oldact->sigmask = myproc()->handlers[signum]->sigmask;
+    // cprintf("%s%d\n", "act2->sa_handler after change: ", oldact->sa_handler);
+
+  }
+  if(act != NULL){
+    // cprintf("%s%d\n", "act1->sa_handler: ", act->sa_handler);
+    myproc()->handlers[signum]->sa_handler = act->sa_handler;
+    myproc()->handlers[signum]->sigmask = act->sigmask;
+    // cprintf("%s%d\n", "act1->sa_handler: ", act->sa_handler);
+    // cprintf("%s%d\n", "handlers[10] after change: ",myproc()->handlers[signum]->sa_handler);
+
+  }
+
+  return 0;
+}
