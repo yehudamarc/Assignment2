@@ -53,6 +53,7 @@ struct proc {
   uint mask;				   // Signal Mask
   struct sigaction* handlers[32]; // Signal Handlers
   struct trapframe* backup;	   // User Trap Trame Backup
+  int stopped;				   // If non-zero, the process recieved SIGSTOP signal
 };
 
 // Process memory is laid out contiguously, low addresses first:

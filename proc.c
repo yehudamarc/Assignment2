@@ -355,6 +355,10 @@ scheduler(void)
       if(p->state != RUNNABLE)
         continue;
 
+      // If p in stopped state and there isn't SIGCONT pending
+      if(p->stopped == 1 && !((p->pending & (1u << SIGCONT)) >> SIGCONT) )
+        continue;
+
       // Switch to chosen process.  It is the process's job
       // to release ptable.lock and then reacquire it
       // before jumping back to us.
@@ -506,9 +510,10 @@ kill(int pid, int signum)
   for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
     if(p->pid == pid){
       p->pending |= (1u << signum);
-      // Wake process from sleep if necessary.
-      // if(p->state == SLEEPING)
-      //   p->state = RUNNABLE;
+      // Wake process from sleep if necessary
+      if(signum == SIGKILL || signum == SIGSTOP)
+        if(p->state == SLEEPING)
+          p->state = RUNNABLE;
       release(&ptable.lock);
       return 0;
     }
@@ -599,4 +604,67 @@ sigaction (int signum, const struct sigaction* act, struct sigaction* oldact)
   }
 
   return 0;
+}
+
+int
+sig_kill (int pid)
+{
+  struct proc *p;
+  // Change?
+  // p = myproc();
+  // p->killed = 1;
+  // return 0;
+  
+  acquire(&ptable.lock);
+  for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
+    if(p->pid == pid){
+      p->killed = 1;
+      release(&ptable.lock);
+      return 0;
+    }
+  }
+  release(&ptable.lock);
+  return -1;
+}
+
+int
+sig_stop (int pid)
+{
+  struct proc *p;
+  // p = myproc();
+  // p->stopped = 1;
+  // return 0;
+
+  acquire(&ptable.lock);
+  for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
+    if(p->pid == pid){
+      // Turn on stopped mode
+      p->stopped = 1;
+      release(&ptable.lock);
+      return 0;
+    }
+  }
+  release(&ptable.lock);
+  return -1;
+}
+
+int
+sig_cont (int pid)
+{
+  struct proc *p;
+  // p = myproc();
+  // p->stopped = 0;
+  // return 0;
+
+  acquire(&ptable.lock);
+  for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
+    if(p->pid == pid){
+      // turn off stopped mode
+      p->stopped = 0;
+      release(&ptable.lock);
+      return 0;
+    }
+  }
+  release(&ptable.lock);
+  return -1;
 }
