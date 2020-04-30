@@ -23,6 +23,9 @@ alltraps:
   # Return falls through to trapret...
 .globl trapret
 trapret:
+  push %esp
+  call execPendings
+  addl $4, %esp
   popal
   popl %gs
   popl %fs
@@ -30,3 +33,12 @@ trapret:
   popl %ds
   addl $0x8, %esp  # trapno and errcode
   iret
+
+ # Call to sigret - code to copy
+.globl call_sigret
+.globl call_sigret_end
+call_sigret:
+  movl SYS_sigret, %eax
+  int 24
+  ret
+call_sigret_end:

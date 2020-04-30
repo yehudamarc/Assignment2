@@ -13,6 +13,77 @@ struct gatedesc idt[256];
 extern uint vectors[];  // in vectors.S: array of 256 entry pointers
 struct spinlock tickslock;
 uint ticks;
+// Temporarely holds process mask
+uint proc_mask;
+
+// Execute all pending signal
+void
+execPendings(struct trapframe *tf)
+{ 
+    // Check pending signals before returning to user space 
+    for(int i = 0; i < 32; i++){
+      // Check if the i-th bit is on
+      if((myproc()->pending & (1u << i)) >> i){
+        // Save initial state of mask
+        proc_mask = myproc()->mask;
+        // Replace with current signal mask
+        myproc()->mask = myproc()->handlers[i]->mask;
+        // if it's kill or stop - execute
+        if(i == SIGKILL){
+          sig_kill(myproc()->pid);
+          myproc()->mask = proc_mask;
+          continue;
+        }
+        if(i == SIGSTOP){
+          sig_stop(myproc()->pid);
+          myproc()->mask = proc_mask;
+          continue;
+        }
+        // Else - check if masked
+        if((myproc()->mask & (1u << i)) >> i){
+          myproc()->mask = proc_mask;
+          continue;
+        }
+        // Check if it's kernel space signal
+        if(myproc()->handlers[i]->sa_handler == SIG_DFL){
+          if(i == SIGCONT)
+            sig_cont(myproc()->pid);
+          else
+            sig_kill(myproc()->pid);
+        }
+        else if(myproc()->handlers[i]->sa_handler == SIG_IGN){
+          // Do nothing
+        }
+        else if(myproc()->handlers[i]->sa_handler == SIGKILL){
+          sig_kill(myproc()->pid);
+        }
+        else if(myproc()->handlers[i]->sa_handler == SIGSTOP){
+          sig_stop(myproc()->pid);
+        }
+        else if(myproc()->handlers[i]->sa_handler == SIGCONT){
+          // @TODO: call to sa_handler of SIGCONT
+          sig_cont(myproc()->pid);
+        }
+        // if it's user space program
+        else{
+          // Backup process trapframe
+          myproc()->backup = myproc()->tf;
+          // Push i (= signum)
+          myproc()->tf->eax = i;
+          // Push sigret as return address
+          myproc()->tf->esp -= &call_sigret_end - &call_sigret;
+          myproc()->tf->esp = memmove(myproc()->tf->esp, call_sigret, &call_sigret_end - &call_sigret);
+          // jump to the corresponding sa_handler
+          myproc()->tf->eip = myproc()->handlers[i]->sa_handler;
+          }
+
+        // Restore process mask state
+        myproc()->mask = proc_mask;
+        // Turn off the pending bit of the signal we handled
+        myproc()->pending = (myproc()->pending ^ (1u << i));
+      }
+    }
+}
 
 void
 tvinit(void)
@@ -43,6 +114,8 @@ trap(struct trapframe *tf)
     syscall();
     if(myproc()->killed)
       exit();
+
+    //@TODO: Check if returns to userspace (trapret)
     return;
   }
 
