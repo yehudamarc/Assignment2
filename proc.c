@@ -499,14 +499,16 @@ int
 kill(int pid, int signum)
 {
   struct proc *p;
+  if(signum < 0 || signum > 31)
+    return -1;
 
   acquire(&ptable.lock);
   for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
     if(p->pid == pid){
       p->pending |= (1u << signum);
       // Wake process from sleep if necessary.
-      if(p->state == SLEEPING)
-        p->state = RUNNABLE;
+      // if(p->state == SLEEPING)
+      //   p->state = RUNNABLE;
       release(&ptable.lock);
       return 0;
     }
