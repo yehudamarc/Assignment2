@@ -606,6 +606,10 @@ sigaction (int signum, const struct sigaction* act, struct sigaction* oldact)
   return 0;
 }
 
+
+
+
+/*
 int
 sig_kill (int pid)
 {
@@ -668,3 +672,4 @@ sig_cont (int pid)
   release(&ptable.lock);
   return -1;
 }
+*/

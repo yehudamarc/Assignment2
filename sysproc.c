@@ -137,8 +137,8 @@ sys_sigaction(void)
 int
 sys_sigret(void)
 {
-
-
+  // Restore process trapframe
+  myproc()->tf = myproc()->backup;
 
   return 0;
 }

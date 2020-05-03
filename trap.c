@@ -15,6 +15,32 @@ struct spinlock tickslock;
 uint ticks;
 // Temporarely holds process mask
 uint proc_mask;
+// import call sigret assembly function
+extern void call_sigret(void);
+extern void call_sigret_end(void);
+
+
+// Default functions for kernel space signal
+int
+sig_kill (int pid)
+{
+  myproc()->killed = 1;
+  return 0;
+}
+
+int
+sig_stop (int pid)
+{
+  myproc()->stopped = 1;
+  return 0;
+}
+
+int
+sig_cont (int pid)
+{
+  myproc()->stopped = 0;
+  return 0;
+}
 
 // Execute all pending signal
 void
@@ -27,7 +53,7 @@ execPendings(struct trapframe *tf)
         // Save initial state of mask
         proc_mask = myproc()->mask;
         // Replace with current signal mask
-        myproc()->mask = myproc()->handlers[i]->mask;
+        myproc()->mask = myproc()->handlers[i]->sigmask;
         // if it's kill or stop - execute
         if(i == SIGKILL){
           sig_kill(myproc()->pid);
@@ -48,33 +74,37 @@ execPendings(struct trapframe *tf)
         if(myproc()->handlers[i]->sa_handler == SIG_DFL){
           if(i == SIGCONT)
             sig_cont(myproc()->pid);
+          else if (i == SIGSTOP)
+            sig_stop(myproc()->pid);
           else
             sig_kill(myproc()->pid);
         }
-        else if(myproc()->handlers[i]->sa_handler == SIG_IGN){
+        else if(myproc()->handlers[i]->sa_handler == (void (*) (int))SIG_IGN){
           // Do nothing
         }
-        else if(myproc()->handlers[i]->sa_handler == SIGKILL){
+        else if(myproc()->handlers[i]->sa_handler == (void (*) (int))SIGKILL){
           sig_kill(myproc()->pid);
         }
-        else if(myproc()->handlers[i]->sa_handler == SIGSTOP){
+        else if(myproc()->handlers[i]->sa_handler == (void (*) (int))SIGSTOP){
           sig_stop(myproc()->pid);
         }
-        else if(myproc()->handlers[i]->sa_handler == SIGCONT){
+        else if(myproc()->handlers[i]->sa_handler == (void (*) (int))SIGCONT){
           // @TODO: call to sa_handler of SIGCONT
           sig_cont(myproc()->pid);
         }
         // if it's user space program
         else{
+          
           // Backup process trapframe
           myproc()->backup = myproc()->tf;
           // Push i (= signum)
           myproc()->tf->eax = i;
           // Push sigret as return address
           myproc()->tf->esp -= &call_sigret_end - &call_sigret;
-          myproc()->tf->esp = memmove(myproc()->tf->esp, call_sigret, &call_sigret_end - &call_sigret);
+          memmove((void*) myproc()->tf->esp, call_sigret, &call_sigret_end - &call_sigret);
           // jump to the corresponding sa_handler
-          myproc()->tf->eip = myproc()->handlers[i]->sa_handler;
+          myproc()->tf->eip = (uint)myproc()->handlers[i]->sa_handler
+          
           }
 
         // Restore process mask state
@@ -83,6 +113,7 @@ execPendings(struct trapframe *tf)
         myproc()->pending = (myproc()->pending ^ (1u << i));
       }
     }
+    
 }
 
 void
