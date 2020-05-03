@@ -104,6 +104,9 @@ found:
 
   p->pid = allocpid();
 
+  // Initilize fields
+  p->pending = 0;
+
   // Allocate kernel stack.
   if((p->kstack = kalloc()) == 0){
     p->state = UNUSED;
@@ -215,7 +218,7 @@ fork(void)
   np->sz = curproc->sz;
   np->parent = curproc;
   *np->tf = *curproc->tf;
-  // Inheret father signal mask and signal handlers
+  // Inherit father signal mask and signal handlers
   np->mask = curproc->mask;
   *np->handlers = *curproc->handlers;
 
@@ -502,6 +505,12 @@ wakeup(void *chan)
 int
 kill(int pid, int signum)
 {
+  cprintf("in kill!\n");
+  cprintf("%s%d\n", "pid: ", pid);
+  cprintf("%s%d\n", "signum: ", signum);
+  cprintf("%s%d\n", "proc pid: ", myproc()->pid);
+  cprintf("%s%d\n", "proc pending: ", myproc()->pending);
+
   struct proc *p;
   if(signum < 0 || signum > 31)
     return -1;
@@ -509,7 +518,9 @@ kill(int pid, int signum)
   acquire(&ptable.lock);
   for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
     if(p->pid == pid){
+      cprintf("%s%d\n", "p pending before: ", p->pending);
       p->pending |= (1u << signum);
+      cprintf("%s%d\n", "p pending after: ", p->pending);
       // Wake process from sleep if necessary
       if(signum == SIGKILL || signum == SIGSTOP)
         if(p->state == SLEEPING)
@@ -589,15 +600,15 @@ sigaction (int signum, const struct sigaction* act, struct sigaction* oldact)
     // cprintf("%s%d\n", "act2->sa_handler: ", oldact->sa_handler);
     // cprintf("%s%d\n", "act1->sa_handler: ", act->sa_handler);
     // cprintf("%s%d\n", "handlers[signum]: " ,myproc()->handlers[signum]->sa_handler);
-    oldact->sa_handler = myproc()->handlers[signum]->sa_handler;
-    oldact->sigmask = myproc()->handlers[signum]->sigmask;
+    oldact->sa_handler = myproc()->handlers[signum];
+    oldact->sigmask = myproc()->masksArr[signum];
     // cprintf("%s%d\n", "act2->sa_handler after change: ", oldact->sa_handler);
 
   }
   if(act != NULL){
     // cprintf("%s%d\n", "act1->sa_handler: ", act->sa_handler);
-    myproc()->handlers[signum]->sa_handler = act->sa_handler;
-    myproc()->handlers[signum]->sigmask = act->sigmask;
+    myproc()->handlers[signum] = act->sa_handler;
+    myproc()->masksArr[signum] = act->sigmask;
     // cprintf("%s%d\n", "act1->sa_handler: ", act->sa_handler);
     // cprintf("%s%d\n", "handlers[10] after change: ",myproc()->handlers[signum]->sa_handler);
 

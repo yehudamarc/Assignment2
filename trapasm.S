@@ -25,7 +25,7 @@ alltraps:
   # Return falls through to trapret...
 .globl trapret
 trapret:
-  push %esp
+  pushl %esp
   call execPendings
   addl $4, %esp
   popal

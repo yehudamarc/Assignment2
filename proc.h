@@ -51,7 +51,8 @@ struct proc {
   char name[16];               // Process name (debugging)
   uint pending; 			   // Pending Signals
   uint mask;				   // Signal Mask
-  struct sigaction* handlers[32]; // Signal Handlers
+  uint masksArr[32]; 		   // Array for signal masks
+  void* handlers[32]; 		   // Signal Handlers
   struct trapframe* backup;	   // User Trap Trame Backup
   int stopped;				   // If non-zero, the process recieved SIGSTOP signal
 };
