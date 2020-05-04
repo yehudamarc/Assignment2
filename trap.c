@@ -20,6 +20,7 @@ extern void call_sigret(void);
 extern void call_sigret_end(void);
 int pending_lock;
 int counter;
+int blocking;
 
 
 // Default functions for kernel space signal
@@ -48,7 +49,9 @@ sig_cont (int signum)
 void
 execPendings(struct trapframe *tf)
 { 
-  if(myproc() != NULL){
+  struct proc *p = myproc();
+
+  if(p != NULL){
     counter++;
     // while(pending_lock){}
     // pending_lock = 1;
@@ -58,41 +61,51 @@ execPendings(struct trapframe *tf)
     // Check pending signals before returning to user space 
     for(int i = 0; i < 32; i++){
       // Check if the i-th bit is on
-      ibit = (myproc()->pending & (1u << i)) >> i;
+      ibit = (p->pending & (1u << i)) >> i;
       if(ibit){
+        if(blocking == 1)
+          break;
+        blocking = 1;
         cprintf("in Here!\n"); 
         cprintf("%s%d%s", "counter: ", counter,"\n");  
-        cprintf("%s%d%s", "pid: ", myproc()->pid,"\n");
+        cprintf("%s%d%s", "pid: ", p->pid,"\n");
         cprintf("%s%d%s", "i value: ", i,"\n");
         cprintf("%s%d%s", "ibit value: ", ibit,"\n");
-        cprintf("%s%d%s", "handler: ", myproc()->handlers[i],"\n");
+        cprintf("%s%d%s", "handler: ", p->handlers[i],"\n");
 
         // Save initial state of mask
-        proc_mask = myproc()->mask;
+        proc_mask = p->mask;
         // Replace with current signal mask
-        myproc()->mask = myproc()->masksArr[i];
+        p->mask = p->masksArr[i];
         // if it's kill or stop - execute
         if(i == SIGKILL){
           sig_kill(i);
           // Turn off the bit and restore mask
-          myproc()->pending = (myproc()->pending ^ (1u << i));
-          myproc()->mask = proc_mask;
+          p->pending = (p->pending ^ (1u << i));
+          p->mask = proc_mask;
           continue;
         }
         if(i == SIGSTOP){
           sig_stop(i);
-          myproc()->pending = (myproc()->pending ^ (1u << i));
-          myproc()->mask = proc_mask;
+          p->pending = (p->pending ^ (1u << i));
+          p->mask = proc_mask;
           continue;
         }
         // Else - check if masked
-        if((myproc()->mask & (1u << i)) >> i){
-          myproc()->mask = proc_mask;
+        if((p->mask & (1u << i)) >> i){
+          p->mask = proc_mask;
           // Don't turn off the bit
           continue;
         }
+
+        // @TODO: remove and place it in the end of execution
+        if((p->pending & (1u << i)) >> i)
+        p->pending = (p->pending ^ (1u << i));
+        cprintf("%s%d\n", "proc pending: ", p->pending);
+
+
         // Check if it's kernel space signal
-        if(myproc()->handlers[i] == SIG_DFL){
+        if(p->handlers[i] == SIG_DFL){
           if(i == SIGCONT)
             sig_cont(i);
           else{
@@ -100,46 +113,54 @@ execPendings(struct trapframe *tf)
             sig_kill(i);
           }
         }
-        else if(myproc()->handlers[i] == (void *)SIG_IGN){
+        else if(p->handlers[i] == (void *)SIG_IGN){
           // Do nothing
         }
-        else if(myproc()->handlers[i] == (void *)SIGKILL){
+        else if(p->handlers[i] == (void *)SIGKILL){
           sig_kill(i);
         }
-        else if(myproc()->handlers[i] == (void *)SIGSTOP){
+        else if(p->handlers[i] == (void *)SIGSTOP){
           sig_stop(i);
         }
-        else if(myproc()->handlers[i] == (void *)SIGCONT){
+        else if(p->handlers[i] == (void *)SIGCONT){
           // @TODO: call to sa_handler of SIGCONT
           sig_cont(i);
         }
         // if it's user space program
         else{
-          cprintf("%s%d\n", "made it inside else function!! ", myproc()->pending);
+          cprintf("%s\n", "made it inside else function!! ");
           // Backup process trapframe
           // myproc()->backup = myproc()->tf;
-          memmove(myproc()->backup, myproc()->tf, sizeof(struct trapframe));
+          memmove(p->backup, p->tf, sizeof(struct trapframe));
+          // Inject sigret as return address
+          uint call_size = (uint)&call_sigret_end - (uint)&call_sigret;
+          p->tf->esp -= call_size;
+          memmove((void*) p->tf->esp, call_sigret, call_size);
           // Push i (= signum)
-          myproc()->tf->esp = i;
-          myproc()->tf->esp -= 4;
-          // Push sigret as return address
-          myproc()->tf->esp -= &call_sigret_end - &call_sigret;
-          memmove((void*) myproc()->tf->esp, call_sigret, &call_sigret_end - &call_sigret);
+          *((int*)(p->tf->esp - 4)) = i;
+          // Push return address
+          *((int*)(p->tf->esp - 8)) = p->tf->esp;
+
+          p->tf->esp -= 8;
           // jump to the corresponding sa_handler
-          myproc()->tf->eip = (uint)myproc()->handlers[i];
-          
-          }
+          cprintf("%s%d\n", "eip value before: ", p->tf->eip);
+          p->tf->eip = (uint)p->handlers[i];
+          // break;
+          cprintf("%s%d\n", "eip value after: ", p->tf->eip);
+        }
+
+        cprintf("%s%d\n", "Value of int_test: ", int_test);
         // Restore process mask state
-        myproc()->mask = proc_mask;
+        p->mask = proc_mask;
         // Turn off the pending bit of the signal we handled
-        cprintf("%s%d\n", "proc pending before changing: ", myproc()->pending);
-        myproc()->pending = (myproc()->pending ^ (1u << i));
-        cprintf("%s%d\n", "proc pending after handling: ", myproc()->pending);
+        // cprintf("%s%d\n", "proc pending before changing: ", p->pending);
+        // p->pending = (p->pending ^ (1u << i));
+        // cprintf("%s%d\n", "proc pending after handling: ", p->pending);
 
       }
     }
         // pending_lock = 0;
-    }
+  }
 }
 
 void
@@ -171,8 +192,6 @@ trap(struct trapframe *tf)
     syscall();
     if(myproc()->killed)
       exit();
-
-    //@TODO: Check if returns to userspace (trapret)
     return;
   }
 

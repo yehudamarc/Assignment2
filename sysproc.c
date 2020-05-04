@@ -137,8 +137,12 @@ sys_sigaction(void)
 int
 sys_sigret(void)
 {
+  cprintf("I'm in sigret!\n");
+  int_test++;
   // Restore process trapframe
-  myproc()->tf = myproc()->backup;
+  memmove(myproc()->tf, myproc()->backup, sizeof(struct trapframe));
+  // myproc()->tf = myproc()->backup;
+
 
   return 0;
 }

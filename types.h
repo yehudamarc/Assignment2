@@ -7,3 +7,7 @@ struct sigaction {
 	void (*sa_handler) (int);
 	uint sigmask;
 };
+
+
+// Test variables
+int int_test;

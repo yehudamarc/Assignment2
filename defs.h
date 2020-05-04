@@ -199,3 +199,6 @@ void            clearpteu(pde_t *pgdir, char *uva);
 #define SIGKILL 9
 #define SIGSTOP 17
 #define SIGCONT 19
+
+// Test variables
+// int int_test;

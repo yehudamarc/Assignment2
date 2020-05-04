@@ -5,8 +5,9 @@
 
 int f = 0;
 void handler (int a) { 
-	// printf(1, "%s\n", "shit");
+	printf(1, "%s\n", "shit");
 	// f = 1;
+	int_test++;
 }
 
 
@@ -32,6 +33,8 @@ main(int argc, char *argv[])
 	printf(1, "%s%d\n", "act 1 malloc: ", act1);
 	printf(1, "%s%d\n", "act 2 malloc: ", act2);
 
+	printf(1, "%s%d\n", "handler is: ", handler);
+	printf(1, "%s%d\n", "&handler is: ", &handler);
 	
 	act1->sa_handler = &handler;
 	printf(1, "%s%d\n", "act1 sa_handler: " ,act1->sa_handler);
@@ -39,6 +42,7 @@ main(int argc, char *argv[])
 	if(sigaction(20, act1, act2) == -1)
 		printf(1, "%s\n", "Error in sigaction!");
 
+	int father_pid = getpid();
 
 	if(fork() == 0){
 		int i = 1000000;
@@ -56,7 +60,7 @@ main(int argc, char *argv[])
 		int i = 1000000;
 		int dummy = 0;
 
-		kill(3, 20);
+		kill(father_pid, 20);
 
 		while(i--){
 			fib(5);

@@ -40,7 +40,6 @@ trapret:
 .globl call_sigret
 .globl call_sigret_end
 call_sigret:
-  movl SYS_sigret, %eax
+  movl $SYS_sigret, %eax
   int $T_SYSCALL
-  ret
 call_sigret_end:

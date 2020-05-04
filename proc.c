@@ -118,6 +118,9 @@ found:
   sp -= sizeof *p->tf;
   p->tf = (struct trapframe*)sp;
 
+  // Leave room for backup trapframe
+  p->backup = (struct trapframe*)p->kstack;
+
   // Set up new context to start executing at forkret,
   // which returns to trapret.
   sp -= 4;
@@ -357,11 +360,11 @@ scheduler(void)
     for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
       if(p->state != RUNNABLE)
         continue;
-
+      /*
       // If p in stopped state and there isn't SIGCONT pending
       if(p->stopped == 1 && !((p->pending & (1u << SIGCONT)) >> SIGCONT) )
         continue;
-
+      */
       // Switch to chosen process.  It is the process's job
       // to release ptable.lock and then reacquire it
       // before jumping back to us.
