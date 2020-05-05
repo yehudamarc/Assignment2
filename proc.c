@@ -217,7 +217,8 @@ fork(void)
   *np->tf = *curproc->tf;
   // Inheret father signal mask and signal handlers
   np->mask = curproc->mask;
-  *np->handlers = *curproc->handlers;
+  for(int i = 0; i < 32; i++)
+    np->handlers[i] = curproc->handlers[i];
 
   // Clear %eax so that fork returns 0 in the child.
   np->tf->eax = 0;

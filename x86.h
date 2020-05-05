@@ -144,6 +144,26 @@ lcr3(uint val)
   asm volatile("movl %0,%%cr3" : : "r" (val));
 }
 
+// Implemention of CAS function
+// static inline int
+// cas (volatile void *addr, int expected, int newval)
+// {
+//   int result;
+// // Use cmpxchg, asve result and return ZF
+//   asm volatile("movl %1, %%eax"
+//                "lock; cmpxchgl %2, %3"
+//                "movl %1, %%eax"
+//                "pushfl"
+//                "popl %%eax"
+//                "and $64, %%eax"
+//                "shr %%eax, $6"
+//                "movl %%eax, %0" :
+//                "=r" (result) :
+//                "r" (expected), "r" (addr), "r" (newval) :
+//                "%eax");
+//   // result contains now 1 for true or 0 for false (ZF result)
+//   return result;
+// }
 //PAGEBREAK: 36
 // Layout of the trap frame built on the stack by the
 // hardware and by trapasm.S, and passed to trap().
