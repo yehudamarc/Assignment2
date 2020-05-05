@@ -95,17 +95,20 @@ allocproc(void)
   char *sp;
 
   // acquire(&ptable.lock);
+  pushcli();
 
   for(p = ptable.proc; p < &ptable.proc[NPROC]; p++)
     if(cas(&p->state, UNUSED, EMBRYO))
       goto found;
 
   // release(&ptable.lock);
+  popcli();
   return 0;
 
 found:
   // p->state = EMBRYO;
   // release(&ptable.lock);
+  popcli()
 
   p->pid = allocpid();
 
@@ -167,11 +170,17 @@ userinit(void)
   // run this process. the acquire forces the above
   // writes to be visible, and the lock is also needed
   // because the assignment might not be atomic.
-  acquire(&ptable.lock);
 
-  p->state = RUNNABLE;
+  // acquire(&ptable.lock); 
+  // p->state = RUNNABLE;
+  // release(&ptable.lock);
 
-  release(&ptable.lock);
+  // @TODO: Why this should be atomic?
+  //        When this is fails?
+  //        To what value we need to compare?
+  pushcli();
+  cas(&p->state, UNUSED, RUNNABLE);
+  popcli();
 }
 
 // Grow current process's memory by n bytes.
@@ -210,6 +219,11 @@ fork(void)
     return -1;
   }
 
+  // Start transitioning from EMBRYO to RUNNING
+  pushcli();
+  cas(&p->state, EMBRYO, -RUNNABLE);
+  popcli();
+
   // Copy process state from proc.
   if((np->pgdir = copyuvm(curproc->pgdir, curproc->sz)) == 0){
     kfree(np->kstack);
@@ -217,6 +231,7 @@ fork(void)
     np->state = UNUSED;
     return -1;
   }
+
   np->sz = curproc->sz;
   np->parent = curproc;
   *np->tf = *curproc->tf;
@@ -237,11 +252,14 @@ fork(void)
 
   pid = np->pid;
 
-  acquire(&ptable.lock);
+  // acquire(&ptable.lock);
+  // np->state = RUNNABLE;
+  // release(&ptable.lock);
 
-  np->state = RUNNABLE;
-
-  release(&ptable.lock);
+  // End transitioning from EMBRYO to RUNNING
+  pushcli();
+  cas(&p->state, -RUNNABLE, RUNNABLE);
+  popcli();
 
   return pid;
 }
@@ -255,6 +273,15 @@ exit(void)
   struct proc *curproc = myproc();
   struct proc *p;
   int fd;
+
+  // Start transitioning from EMBRYO to RUNNING
+  pushcli();
+  enum procstate old;
+  do{
+    old = p->state;
+  } while(!cas(&p->state, old, -ZOMBIE));
+  popcli();
+
 
   if(curproc == initproc)
     panic("init exiting");
@@ -272,14 +299,15 @@ exit(void)
   end_op();
   curproc->cwd = 0;
 
-  acquire(&ptable.lock);
-
+  // acquire(&ptable.lock);
+  pushcli();
   // Parent might be sleeping in wait().
-  wakeup1(curproc->parent);
+  // wakeup1(curproc->parent);
 
   // Pass abandoned children to init.
   for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
     if(p->parent == curproc){
+      // @TODO: can we trust that no one else is trying to change it's father?
       p->parent = initproc;
       if(p->state == ZOMBIE)
         wakeup1(initproc);
@@ -288,6 +316,8 @@ exit(void)
 
   // Jump into the scheduler, never to return.
   curproc->state = ZOMBIE;
+  // Make sure parent wakes up AFTER currproc is zombie
+  wakeup1(curproc->parent);
   sched();
   panic("zombie exit");
 }
@@ -483,10 +513,15 @@ static void
 wakeup1(void *chan)
 {
   struct proc *p;
+  pushcli();
+  for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
+    if(p->state == SLEEPING && p->chan == chan){
+      cas(&p->state, SLEEPING, RUNNABLE);
+      // p->state = RUNNABLE;
+    }
+  }
+  popcli();
 
-  for(p = ptable.proc; p < &ptable.proc[NPROC]; p++)
-    if(p->state == SLEEPING && p->chan == chan)
-      p->state = RUNNABLE;
 }
 
 // Wake up all processes sleeping on chan.
