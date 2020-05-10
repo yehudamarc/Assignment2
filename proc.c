@@ -310,9 +310,10 @@ exit(void)
   for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
     if(p->parent == curproc){
       p->parent = initproc;
-      if(p->state == ZOMBIE)
-      	// wait on -ZOMBIE
+      if(p->state == ZOMBIE || p->state == -ZOMBIE){
+      	// wait on -ZOMBIE in wait()
         wakeup1(initproc);
+    }
     }
   }
 
