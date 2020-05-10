@@ -42,7 +42,6 @@ sys_kill(void)
 int
 sys_getpid(void)
 {
-
   return myproc()->pid;
 }
 
@@ -129,9 +128,8 @@ sys_sigaction(void)
 int
 sys_sigret(void)
 {
-
   sigret();
-  
+   
   // Not suppose to return
   return -1;
 }

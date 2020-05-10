@@ -13,8 +13,6 @@ struct gatedesc idt[256];
 extern uint vectors[];  // in vectors.S: array of 256 entry pointers
 struct spinlock tickslock;
 uint ticks;
-// Temporarely holds process mask
-// uint proc_mask;
 // import call sigret assembly function
 extern void call_sigret(void);
 extern void call_sigret_end(void);
@@ -49,11 +47,12 @@ execPendings(struct trapframe *tf)
 { 
   struct proc *p = myproc();
 
+  
+  if(p == NULL) return;
+  // If not on user mode
+  if ((tf->cs & 3) != DPL_USER) return;
   // make sure it's not already handling signals
-  if(p != NULL && (p->handling_signal == 0)){
-    if ((tf->cs & 3) != DPL_USER) return;
-    // @TODO: Change lock checking to CAS?
-    p->handling_signal = 1;
+  if(!cas(&p->handling_signal, 0, 1)) return;
 
     counter++;
     int ibit;
@@ -64,7 +63,6 @@ execPendings(struct trapframe *tf)
       // Check if the i-th bit is on
       ibit = (p->pending & (1u << i)) >> i;
       if(ibit){
-
         cprintf("in Here!\n"); 
         cprintf("%s%d%s", "counter: ", counter,"\n");  
         cprintf("%s%d%s", "pid: ", p->pid,"\n");
@@ -75,7 +73,7 @@ execPendings(struct trapframe *tf)
         // if it's kill or stop - execute
         if(i == SIGKILL){
           sig_kill(i);
-          // Turn off the bit and restore mask
+          // Turn off the bit
           p->pending = (p->pending ^ (1u << i));
           continue;
         }
@@ -89,11 +87,6 @@ execPendings(struct trapframe *tf)
           // Don't turn off the bit
           continue;
         }
-
-        // Save initial state of mask
-        p->mask_backup = p->mask;
-        // Replace with current signal mask
-        p->mask = p->masksArr[i];
 
         // Check if it's kernel space signal
         if(p->handlers[i] == SIG_DFL){
@@ -118,6 +111,10 @@ execPendings(struct trapframe *tf)
         // if it's user space program
         else{
           cprintf("%s\n", "made it inside else function!! ");
+          // Save initial state of mask
+          p->mask_backup = p->mask;
+          // Replace with current signal mask
+          p->mask = p->masksArr[i];
           // Backup process trapframe
           // memmove(&p->backup, p->tf, sizeof(struct trapframe));
           *p->backup = *p->tf;
@@ -152,8 +149,6 @@ execPendings(struct trapframe *tf)
         break;
         }
 
-        // Restore process mask state
-        p->mask = p->mask_backup;
         // Turn off the pending bit of the signal we handled
         cprintf("%s%d\n", "proc pending before changing: ", p->pending);
         p->pending = (p->pending ^ (1u << i));
@@ -162,7 +157,6 @@ execPendings(struct trapframe *tf)
       }
     }
     p->handling_signal = 0;
-  }
 }
 
 void
