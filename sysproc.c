@@ -30,15 +30,29 @@ int
 sys_kill(void)
 {
   int pid;
+  int signum;
 
   if(argint(0, &pid) < 0)
     return -1;
-  return kill(pid);
+  if(argint(1, &signum) < 0)
+    return -1;
+  return kill(pid, signum);
 }
 
 int
 sys_getpid(void)
 {
+
+  // myproc()->handlers[10]->sa_handler(10);
+
+  // void (*ptr) (int) 
+  // if(ptr == NULL)
+  //   cprintf("ptr is null\n");
+  // else{
+  //   cprintf("ptr is not null\n");
+  //   cprintf("%d\n", ptr);
+  //   ptr(10);
+
   return myproc()->pid;
 }
 
@@ -88,4 +102,54 @@ sys_uptime(void)
   xticks = ticks;
   release(&tickslock);
   return xticks;
+}
+
+int
+sys_sigprocmask(void)
+{
+  int mask;
+  //@TODO: check if needed to cast/change to uint
+  if(argint(0, &mask) < 0)
+    return -1;
+
+  return sigprocmask(mask);
+}
+
+int
+sys_sigaction(void)
+{
+  int signum;
+  const struct sigaction* act;
+  struct sigaction* oldact;
+
+  // Get arguments from stack
+  if(argint(0, &signum) < 0)
+    return -1;
+  if(argptr(1, ((void*)&act),sizeof(*act)) < 0)
+    return -1;
+  if(argptr(2, ((void*)&oldact),sizeof(*oldact)) < 0)
+    return -1;
+
+  return sigaction(signum, act, oldact);
+}
+
+int
+sys_sigret(void)
+{
+  
+  // cprintf("I'm in sys_sigret!\n");
+  // int_test++;
+  // Restore process trapframe
+  // memmove(myproc()->tf, &myproc()->backup, sizeof(struct trapframe));
+  // myproc()->tf = myproc()->backup;
+  sigret();
+
+  return -1;
+}
+
+// System call for tests, return value changes
+int
+sys_testcall(void)
+{
+  return  0;
 }
