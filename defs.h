@@ -123,7 +123,7 @@ void            wakeup(void*);
 void            yield(void);
 uint 			sigprocmask(uint);
 int 			sigaction(int, const struct sigaction*, struct sigaction*);
-int 			sigret(void);
+void 			sigret(void);
 
 
 // swtch.S

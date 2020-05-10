@@ -94,17 +94,19 @@ sys_uptime(void)
   return xticks;
 }
 
+// Change process sig mask
 int
 sys_sigprocmask(void)
 {
   int mask;
-  //@TODO: check if needed to cast/change to uint
+
   if(argint(0, &mask) < 0)
     return -1;
 
   return sigprocmask(mask);
 }
 
+// Customize signal handler
 int
 sys_sigaction(void)
 {
@@ -123,10 +125,15 @@ sys_sigaction(void)
   return sigaction(signum, act, oldact);
 }
 
+// Called implicitly when returning from user space handler
 int
 sys_sigret(void)
 {
-  return sigret();
+
+  sigret();
+  
+  // Not suppose to return
+  return -1;
 }
 
 // System call for tests, return value changes

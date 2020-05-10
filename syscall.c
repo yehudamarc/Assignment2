@@ -134,7 +134,7 @@ static int (*syscalls[])(void) = {
 [SYS_sigprocmask]   sys_sigprocmask,
 [SYS_sigaction]   sys_sigaction,
 [SYS_sigret]   sys_sigret,
-[SYS_sigret]   sys_testcall,
+[SYS_testcall]   sys_testcall,
 
 };
 
@@ -146,6 +146,8 @@ syscall(void)
 
   num = curproc->tf->eax;
   if(num > 0 && num < NELEM(syscalls) && syscalls[num]) {
+  	// @TODO: check if needed
+    // if(!(num == SYS_sigret))
       curproc->tf->eax = syscalls[num]();
   } else {
     cprintf("%d %s: unknown sys call %d\n",

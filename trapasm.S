@@ -29,7 +29,6 @@ trapret:
   pushl %esp
   call execPendings
   addl $4, %esp
-  
   popal
   popl %gs
   popl %fs
