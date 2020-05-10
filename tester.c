@@ -5,9 +5,7 @@
 
 void handler (int a) { 
 	printf(1, "%s\n", "shit");
-	int_test++;
 }
-
 
 int fib(int n) 
 { 
@@ -20,7 +18,7 @@ int fib(int n)
 int
 main(int argc, char *argv[])
 {
-
+/*
 	//-----	Test for sigaction system call ---------
 
 	printf(1, "%s\n", "sigaction test");
@@ -126,7 +124,7 @@ main(int argc, char *argv[])
 	wait();
 
 	printf(1, "%s\n", "CAS alloc test ok");
-
+*/
 
 	// ---------- General test 1 ----------------------
 	/*	
@@ -264,6 +262,15 @@ main(int argc, char *argv[])
 	// ---------- Test for user space signals --------------
 
 	printf(1, "%s\n", "user space signals test");
+
+	// Temp
+	struct sigaction* act1;
+	struct sigaction* act2;
+	act1 = malloc(sizeof(struct sigaction*));
+	act2 = malloc(sizeof(struct sigaction*));
+	int parent_pid;
+	act1->sa_handler = &handler;	
+	// Until here
 
 	if(sigaction(20, act1, act2) == -1)
 		printf(1, "%s\n", "Error in sigaction!");

@@ -131,9 +131,6 @@ found:
   sp -= sizeof *p->tf;
   p->tf = (struct trapframe*)sp;
 
-  // Leave room for backup trapframe
-  p->backup = (struct trapframe*)p->kstack;
-
   // Set up new context to start executing at forkret,
   // which returns to trapret.
   sp -= 4;
@@ -143,6 +140,9 @@ found:
   p->context = (struct context*)sp;
   memset(p->context, 0, sizeof *p->context);
   p->context->eip = (uint)forkret;
+
+  // Leave room for backup trapframe
+  p->backup = (struct trapframe*)p->kstack;
 
   return p;
 }
@@ -612,14 +612,8 @@ wakeup(void *chan)
 int
 kill(int pid, int signum)
 {
-  // cprintf("in kill!\n");
-  // cprintf("%s%d\n", "pid: ", pid);
-  // cprintf("%s%d\n", "signum: ", signum);
-  // cprintf("%s%d\n", "proc pid: ", myproc()->pid);
-  // cprintf("%s%d\n", "proc pending: ", myproc()->pending);
-
   struct proc *p;
-  if(signum < 0 || signum > 31)
+  if(signum < 0 || signum > 31)  // Valid signal number
     return -1;
 
   pushcli();
@@ -632,8 +626,6 @@ kill(int pid, int signum)
       do{
         old_pending = p->pending;
       } while(!cas(&p->pending, old_pending, (p->pending | (1u << signum))));
-      // p->pending |= (1u << signum);
-      cprintf("%s%d\n", "p pending after: ", p->pending);
       
       // Wake process from sleep if necessary
       if(signum == SIGKILL && p->state == SLEEPING)
@@ -740,10 +732,9 @@ sigaction (int signum, const struct sigaction* act, struct sigaction* oldact)
   return 0;
 }
 
-void
+int
 sigret (void)
 {
-  // cprintf("I'm in sigret!\n");
   *myproc()->tf = *myproc()->backup;
-  // memmove(myproc()->tf, &myproc()->backup, sizeof(struct trapframe));
+  return 0;
 }

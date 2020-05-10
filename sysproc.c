@@ -43,16 +43,6 @@ int
 sys_getpid(void)
 {
 
-  // myproc()->handlers[10]->sa_handler(10);
-
-  // void (*ptr) (int) 
-  // if(ptr == NULL)
-  //   cprintf("ptr is null\n");
-  // else{
-  //   cprintf("ptr is not null\n");
-  //   cprintf("%d\n", ptr);
-  //   ptr(10);
-
   return myproc()->pid;
 }
 
@@ -136,15 +126,7 @@ sys_sigaction(void)
 int
 sys_sigret(void)
 {
-  
-  // cprintf("I'm in sys_sigret!\n");
-  // int_test++;
-  // Restore process trapframe
-  // memmove(myproc()->tf, &myproc()->backup, sizeof(struct trapframe));
-  // myproc()->tf = myproc()->backup;
-  sigret();
-
-  return -1;
+  return sigret();
 }
 
 // System call for tests, return value changes
