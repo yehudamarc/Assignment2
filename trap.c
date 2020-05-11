@@ -123,7 +123,6 @@ execPendings(struct trapframe *tf)
           // Replace with current signal mask
           p->mask = p->masksArr[i];
           // Backup process trapframe
-          // memmove(&p->backup, p->tf, sizeof(struct trapframe));
           *p->backup = *p->tf;
           // Test prints
           // cprintf("%s%d\n", "call_sigret address: ", call_sigret);
