@@ -2,9 +2,14 @@
 #include "stat.h"
 #include "user.h"
 
+#define NULL ((void*) 0)
 
-void handler (int a) { 
-	printf(1, "%s\n", "shit");
+void handler1 (int a) { 
+	printf(1, "%s\n", "shit1");
+}
+
+void handler2 (int a) { 
+	printf(1, "%s\n", "shit2");
 }
 
 int fib(int n) 
@@ -30,7 +35,7 @@ main(int argc, char *argv[])
 	act2 = malloc(sizeof(struct sigaction*));
 	act3 = malloc(sizeof(struct sigaction*));
 
-	act1->sa_handler = &handler;	
+	act1->sa_handler = &handler1;	
 
 	if(sigaction(10, act1, act2) == -1)
 		printf(1, "%s\n", "Error in sigaction!");
@@ -44,10 +49,19 @@ main(int argc, char *argv[])
 	// Make sure act2 recieved old act, and that it was act1
 	if(sigaction(10, act3, act2) == -1)
 		printf(1, "%s\n", "Error in sigaction!");
-	if(act2->sa_handler != &handler)
+	if(act2->sa_handler != &handler1)
 		printf(1, "%s\n", "sigaction test failed");
 
-	printf(1, "%s\n", "sigaction test ok");
+	// Try to call sigaction with null act
+	if(sigaction(10, NULL, act2) != -1)
+		printf(1, "%s\n", "sigaction test failed");
+
+	// Make sure it works with null oldact
+	if(sigaction(10, act1, NULL) != 0)
+		printf(1, "%s\n", "sigaction test failed");
+
+	printf(1, "%s\n\n", "sigaction test ok");
+	sleep(50);
 
 	//-------- Test Kernel Space signals --------------
 
@@ -77,7 +91,8 @@ main(int argc, char *argv[])
 
 	wait();
 
-	printf(1, "\n%s\n", "kernel space signals test ok");
+	printf(1, "%s\n\n", "kernel space signals test ok");
+	sleep(50);
 
 	// ---------- CAS alloc test ----------------------
 
@@ -123,8 +138,115 @@ main(int argc, char *argv[])
 	wait();
 	wait();
 
-	printf(1, "%s\n", "CAS alloc test ok");
+	printf(1, "%s\n\n", "CAS alloc test ok");
+	sleep(100);
 
+	// ---------- Test for user space signals --------------
+
+	printf(1, "%s\n", "user space signals test 1");
+
+	if(sigaction(20, act1, act2) == -1)
+		printf(1, "%s\n", "Error in sigaction!");
+
+	parent_pid = getpid();
+
+	if(fork() == 0){
+		int i = 1000000;
+		int dummy = 0;
+
+		kill(parent_pid, 20);
+
+		// Spend some time...
+		while(i--){
+			fib(5);
+			dummy+=i;	
+		}
+
+		exit();
+	}
+
+	wait();
+
+	printf(1, "%s\n\n", "user space signals test 1 ok");
+	sleep(50);
+
+	// ------------ Userspace signals test 2 ----------------------
+
+	printf(1, "%s\n", "user space signals test 2");
+
+	act2->sa_handler = &handler2;
+
+	if(sigaction(25, act1, NULL) == -1)
+		printf(1, "%s\n", "Error in sigaction!");
+	if(sigaction(26, act2, NULL) == -1)
+		printf(1, "%s\n", "Error in sigaction!");
+
+	parent_pid = getpid();
+
+	if(fork() == 0){
+		int i = 1000000;
+		int dummy = 0;
+
+		kill(parent_pid, 25);
+		kill(parent_pid, 26);
+
+		// Spend some time...
+		while(i--){
+			fib(5);
+			dummy+=i;	
+		}
+
+		exit();
+	}
+
+	wait();
+
+	printf(1, "%s\n\n", "user space signals test 2 ok");
+	sleep(50);
+
+	// --------------- Mixed signals test ------------------
+	
+	printf(1, "%s\n", "Mixed signals test");
+
+	parent_pid = getpid();
+
+	if(fork() == 0){
+		int i = 1000000;
+		int dummy = 0;
+
+		kill(parent_pid, 25);
+		kill(parent_pid, 17);
+
+		// Spend some time...
+		while(i--){
+			fib(5);
+			dummy+=i;	
+		}
+
+		exit();
+	}
+
+	if(fork() == 0){
+		int i = 1000000;
+		int dummy = 0;
+
+		kill(parent_pid, 19);
+		kill(parent_pid, 26);
+
+		// Spend some time...
+		while(i--){
+			fib(5);
+			dummy+=i;	
+		}
+
+		exit();
+	}
+
+	wait();
+	wait();
+
+	printf(1, "%s\n\n", "Mixed signals test ok");
+	sleep(50);
 
 	// ---------- General test 1 ----------------------
 	/*	
@@ -258,34 +380,6 @@ main(int argc, char *argv[])
 
 	printf(1, "%s\n", "Test 2 ok");
 	*/
-
-	// ---------- Test for user space signals --------------
-
-	printf(1, "%s\n", "user space signals test");
-
-	if(sigaction(20, act1, act2) == -1)
-		printf(1, "%s\n", "Error in sigaction!");
-
-	parent_pid = getpid();
-
-	if(fork() == 0){
-		int i = 1000000;
-		int dummy = 0;
-
-		kill(parent_pid, 20);
-
-		// Spend some time...
-		while(i--){
-			fib(5);
-			dummy+=i;	
-		}
-
-		exit();
-	}
-
-	wait();
-
-	
 
 	//----- Test for handling Signals --------------
 	/*

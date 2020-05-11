@@ -58,6 +58,7 @@ struct proc {
   int handling_signal;         // Signal handler lock
   int sigaction;               // Sigaction lock
   uint mask_backup;			   // Save process mask while handling signal	
+  int handling_user_signal;   // User space signals lock
 };
 
 // Process memory is laid out contiguously, low addresses first:
