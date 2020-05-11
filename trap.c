@@ -51,10 +51,7 @@ execPendings(struct trapframe *tf)
   // If not on user mode
   if ((tf->cs & 3) != DPL_USER) return;
   // make sure it's not already handling signals
-  if(!cas(&p->handling_signal, 0, 1)){
-    cprintf("Locked!\n"); 
-   return;
- }
+  if(!cas(&p->handling_signal, 0, 1)) return;
 
     counter++;
     int ibit;

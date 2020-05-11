@@ -139,6 +139,7 @@ found:
   p->handling_signal = 0;
   p->sigaction = 0;
   p->mask_backup = 0;
+  p->handling_user_signal = 0;
   for(int i = 0; i < 32; i++){
   	p->masksArr[i] = 0;
   	p->handlers[i] = 0;
@@ -689,12 +690,6 @@ sigaction (int signum, const struct sigaction* act, struct sigaction* oldact)
   p->sigaction = 0;
   popcli();
   return 0;
-}
-int fib(int n) 
-{ 
-    if (n <= 1) 
-        return n; 
-    return fib(n-1) + fib(n-2); 
 }
 
 void
