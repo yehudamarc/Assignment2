@@ -690,16 +690,26 @@ sigaction (int signum, const struct sigaction* act, struct sigaction* oldact)
   popcli();
   return 0;
 }
+int fib(int n) 
+{ 
+    if (n <= 1) 
+        return n; 
+    return fib(n-1) + fib(n-2); 
+}
 
 void
 sigret (void)
 {
 	struct proc *p = myproc();
 
+	// Realese user space signal lock
+   p->handling_user_signal = 0;
+
   cprintf("I'm in sigret!\n");
   // Restore process mask state
    p->mask = p->mask_backup;
 
+   
   *p->tf = *p->backup;
   // memmove(myproc()->tf, &myproc()->backup, sizeof(struct trapframe));
 }

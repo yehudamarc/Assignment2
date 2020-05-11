@@ -47,12 +47,14 @@ execPendings(struct trapframe *tf)
 { 
   struct proc *p = myproc();
 
-  
   if(p == NULL) return;
   // If not on user mode
   if ((tf->cs & 3) != DPL_USER) return;
   // make sure it's not already handling signals
-  if(!cas(&p->handling_signal, 0, 1)) return;
+  if(!cas(&p->handling_signal, 0, 1)){
+    cprintf("Locked!\n"); 
+   return;
+ }
 
     counter++;
     int ibit;
@@ -111,6 +113,14 @@ execPendings(struct trapframe *tf)
         // if it's user space program
         else{
           cprintf("%s\n", "made it inside else function!! ");
+          cprintf("%s%d\n", "proc pending: ", p->pending);
+          cprintf("%s%d\n", "p->handling_user_signal: ", p->handling_user_signal);
+          // Prevent handling another user space signal concurrently
+          if(!cas(&p->handling_user_signal, 0, 1)){
+            p->handling_signal = 0;
+             return;
+          }
+          cprintf("%s%d\n", "p->handling_user_signal: ", p->handling_user_signal);
           // Save initial state of mask
           p->mask_backup = p->mask;
           // Replace with current signal mask
