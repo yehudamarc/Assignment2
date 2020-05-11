@@ -20,6 +20,21 @@ int fib(int n)
 }
 
 
+void handler3 (int a) { 
+	printf(1, "%s\n", "Handler3 starting...");
+
+		int i = 10;
+		int dummy = 0;
+
+		// Spend some time...
+		while(i--){
+			fib(5);
+			dummy+=i;	
+		}
+
+	printf(1, "%s\n", "Handler3 finished");
+}
+
 int
 main(int argc, char *argv[])
 {
@@ -248,6 +263,67 @@ main(int argc, char *argv[])
 	printf(1, "%s\n\n", "Mixed signals test ok");
 	sleep(50);
 
+	//----- Test for sigprocmask system call -------
+	
+	printf(1, "%s\n", "Masking signals test");
+
+	uint mask = 2020;
+  	if(sigprocmask(mask) != 0)
+  		printf(1, "%s\n", "Masking signals test failed!");
+  	if(sigprocmask(mask) != mask)
+  		printf(1, "%s\n", "Masking signals test failed!");
+
+  	act3->sa_handler = &handler3;
+  	act3->sigmask = 4194304;	// 2^22 - blocking signal 22
+  	sigaction(21, act3, NULL);
+
+  	act3->sa_handler = (void*) 17;	// SIGSTOP
+  	act3->sigmask = 0;
+  	sigaction(22, act3, NULL);
+
+  	int pid1 = fork();
+
+  	if(pid1 == 0){
+		int i = 10000;
+		int dummy = 0;
+		
+		// Spend some time...
+		while(i--){
+			fib(5);
+			dummy+=i;	
+		}
+
+		printf(1, "%s\n", "Continued...");
+
+		exit();
+	}
+
+	if(fork() == 0){
+		int i = 100;
+		int dummy = 0;
+
+		kill(pid1, 21);
+
+		// Spend some time...
+		while(i--){
+			fib(5);
+			dummy+=i;	
+		}
+
+		kill(pid1, 22);	
+
+		exit();
+	}
+
+	sleep(50);
+	kill(pid1, 22);	//CONT
+
+	wait();
+	wait();
+
+	printf(1, "%s\n\n", "Masking signals test ok");
+	sleep(50);
+
 	// ---------- General test 1 ----------------------
 	/*	
 	printf(1, "%s\n", "Test 1 Running...");
@@ -379,87 +455,6 @@ main(int argc, char *argv[])
 	wait();
 
 	printf(1, "%s\n", "Test 2 ok");
-	*/
-
-	//----- Test for handling Signals --------------
-	/*
-	printf(1, "%s\n", "Just testing...");
-
-	struct sigaction* act1;
-	struct sigaction* act2;
-	// struct sigaction* act3;
-	act1 = malloc(sizeof(struct sigaction*));
-	act2 = malloc(sizeof(struct sigaction*));
-	// act3 = malloc(sizeof(struct sigaction*));
-	printf(1, "%s%d\n", "act 1 malloc: ", act1);
-	printf(1, "%s%d\n", "act 2 malloc: ", act2);
-
-	printf(1, "%s%d\n", "handler is: ", handler);
-	printf(1, "%s%d\n", "&handler is: ", &handler);
-	
-	act1->sa_handler = &handler;
-	printf(1, "%s%d\n", "act1 sa_handler: " ,act1->sa_handler);
-
-	if(sigaction(20, act1, act2) == -1)
-		printf(1, "%s\n", "Error in sigaction!");
-
-	int father_pid = getpid();
-
-	if(fork() == 0){
-		int i = 1000000;
-		int dummy = 0;
-
-		// Spend some time...
-		while(i--){
-			fib(5);
-			dummy+=i;	
-		}
-
-		exit();
-	}
-	if(fork() == 0){
-		int i = 1000000;
-		int dummy = 0;
-
-		kill(father_pid, 20);
-
-		while(i--){
-			fib(5);
-			dummy+=i;	
-		}
-		exit();
-	}
-
-	wait();
-	wait();
-
-	printf(1, "%s%d\n", "Value of f is: ", f);
-
-	*/
-
-	/*
-	uint ibit = 0;
-	uint pending = 8;
-	for(int i = 0; i < 32; i++){
-		ibit = (pending & (1u << i)) >> i;
-		printf(1, "%s%d%s%d\n", "i = ", i, " ibit = ", ibit);
-	}
-	*/
-
-
-
-	//----- Test for sigprocmask system call -------
-	/*
-	uint old_mask;
-	uint new_mask;
-	uint mask = 2020;
-	printf(1, "%d\n", mask);
-
-  	old_mask = sigprocmask(mask);
-  	printf(1, "%d\n", old_mask);
-
-  	new_mask = getpid();
-  	printf(1, "%d\n", new_mask);
 	*/
 	
   exit();

@@ -703,7 +703,6 @@ sigret (void)
   cprintf("I'm in sigret!\n");
   // Restore process mask state
    p->mask = p->mask_backup;
-
    
   *p->tf = *p->backup;
   // memmove(myproc()->tf, &myproc()->backup, sizeof(struct trapframe));
