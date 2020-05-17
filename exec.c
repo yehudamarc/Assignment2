@@ -96,9 +96,9 @@ exec(char *path, char **argv)
 
   // Reset custom signal handlers
   for(int j = 0; j < 32; j++){
-    if(curproc->handlers[i] != 0 && curproc->handlers[i] != (void *)1){
-      curproc->handlers[i] = 0;
-      curproc->masksArr[i] = 0;
+    if(curproc->handlers[j] != 0 && curproc->handlers[j] != (void *)1){
+      curproc->handlers[j] = 0;
+      curproc->masksArr[j] = 0;
     }
   }  
 

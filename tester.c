@@ -5,11 +5,15 @@
 #define NULL ((void*) 0)
 
 void handler1 (int a) { 
-	printf(1, "%s\n", "shit1");
+	printf(1, "%s\n", "handler1");
 }
 
 void handler2 (int a) { 
-	printf(1, "%s\n", "shit2");
+	printf(1, "%s\n", "handler2");
+}
+
+void failPrint (int a) { 
+	printf(1, "%s\n", "Test failed!");
 }
 
 int fib(int n) 
@@ -46,9 +50,11 @@ main(int argc, char *argv[])
 	struct sigaction* act1;
 	struct sigaction* act2;
 	struct sigaction* act3;
+	struct sigaction* act4;
 	act1 = malloc(sizeof(struct sigaction*));
 	act2 = malloc(sizeof(struct sigaction*));
 	act3 = malloc(sizeof(struct sigaction*));
+	act4 = malloc(sizeof(struct sigaction*));
 
 	act1->sa_handler = &handler1;	
 
@@ -263,7 +269,7 @@ main(int argc, char *argv[])
 	printf(1, "%s\n\n", "Mixed signals test ok");
 	sleep(50);
 
-	//----- Test for sigprocmask system call -------
+	//----- Test for masking signals with handler -------
 	
 	printf(1, "%s\n", "Masking signals test");
 
@@ -274,12 +280,16 @@ main(int argc, char *argv[])
   		printf(1, "%s\n", "Masking signals test failed!");
 
   	act3->sa_handler = &handler3;
-  	act3->sigmask = 4194304;	// 2^22 - blocking signal 22
+  	act3->sigmask = 138412032;	// blocking signal 22 and 27
   	sigaction(21, act3, NULL);
 
   	act3->sa_handler = (void*) 17;	// SIGSTOP
   	act3->sigmask = 0;
   	sigaction(22, act3, NULL);
+
+  	act3->sa_handler = (void*) 19;	// SIGCONT
+  	act3->sigmask = 0;
+  	sigaction(27, act3, NULL);
 
   	int pid1 = fork();
 
@@ -302,7 +312,7 @@ main(int argc, char *argv[])
 		int i = 100;
 		int dummy = 0;
 
-		kill(pid1, 21);
+		kill(pid1, 21);	// handler3
 
 		// Spend some time...
 		while(i--){
@@ -310,19 +320,55 @@ main(int argc, char *argv[])
 			dummy+=i;	
 		}
 
-		kill(pid1, 22);	
+		kill(pid1, 22);	// STOP
 
 		exit();
 	}
 
 	sleep(50);
-	kill(pid1, 22);	//CONT
+	kill(pid1, 27);	//CONT
 
 	wait();
 	wait();
 
 	printf(1, "%s\n\n", "Masking signals test ok");
 	sleep(50);
+
+	//----- Test for sigprocmask system call and default kill -------
+
+	printf(1, "%s\n", "Mask and default signals test");
+
+	int pid2;
+
+	act4->sa_handler = &failPrint;
+	act4->sigmask = 0;
+  	sigaction(28, act4, NULL);
+	sigaction(29, act4, NULL);
+	sigaction(30, act4, NULL);
+
+	uint mask2 = 1879048192; // Block 28,29,30
+
+	pid2 = fork();
+
+	if(pid2 == 0)
+	{
+		sigprocmask(mask2);
+		fib(50);
+		// no exit - parent should send kill
+
+	} else {
+		fib(35);
+		kill(pid2, 28);
+		kill(pid2, 29);
+		kill(pid2, 30);
+		// shoudln't print anything
+		fib(15);
+		kill(pid2, 31); // Should kill child
+	}
+
+	wait();
+
+	printf(1, "%s\n\n", "Mask and default signals test ok");
 
 	// ---------- General test 1 ----------------------
 	/*	

@@ -62,12 +62,12 @@ execPendings(struct trapframe *tf)
       // Check if the i-th bit is on
       ibit = (p->pending & (1u << i)) >> i;
       if(ibit){
-        cprintf("in Here!\n"); 
-        cprintf("%s%d%s", "counter: ", counter,"\n");  
-        cprintf("%s%d%s", "pid: ", p->pid,"\n");
-        cprintf("%s%d%s", "i value: ", i,"\n");
-        cprintf("%s%d%s", "ibit value: ", ibit,"\n");
-        cprintf("%s%d%s", "handler: ", p->handlers[i],"\n");
+        // cprintf("in Here!\n"); 
+        // cprintf("%s%d%s", "counter: ", counter,"\n");  
+        // cprintf("%s%d%s", "pid: ", p->pid,"\n");
+        // cprintf("%s%d%s", "i value: ", i,"\n");
+        // cprintf("%s%d%s", "ibit value: ", ibit,"\n");
+        // cprintf("%s%d%s", "handler: ", p->handlers[i],"\n");
 
         // if it's kill or stop - execute
         if(i == SIGKILL){
@@ -109,15 +109,15 @@ execPendings(struct trapframe *tf)
         }
         // if it's user space program
         else{
-          cprintf("%s\n", "made it inside else function!! ");
-          cprintf("%s%d\n", "proc pending: ", p->pending);
-          cprintf("%s%d\n", "p->handling_user_signal: ", p->handling_user_signal);
+          // cprintf("%s\n", "made it inside else function!! ");
+          // cprintf("%s%d\n", "proc pending: ", p->pending);
+          // cprintf("%s%d\n", "p->handling_user_signal: ", p->handling_user_signal);
           // Prevent handling another user space signal concurrently
           if(!cas(&p->handling_user_signal, 0, 1)){
             p->handling_signal = 0;
              return;
           }
-          cprintf("%s%d\n", "p->handling_user_signal: ", p->handling_user_signal);
+          // cprintf("%s%d\n", "p->handling_user_signal: ", p->handling_user_signal);
           // Save initial state of mask
           p->mask_backup = p->mask;
           // Replace with current signal mask
@@ -137,28 +137,28 @@ execPendings(struct trapframe *tf)
           // Push return address
           *((int*)(p->tf->esp - 8)) = p->tf->esp;
 
-          cprintf("%s%d\n", "eip return from handler: ", p->tf->esp);
-          cprintf("%s%d\n", "&eip return from handler: ", &p->tf->esp);
-          cprintf("%s%d\n", "*eip return from handler: ", *((int*)(p->tf->esp)));
+          // cprintf("%s%d\n", "eip return from handler: ", p->tf->esp);
+          // cprintf("%s%d\n", "&eip return from handler: ", &p->tf->esp);
+          // cprintf("%s%d\n", "*eip return from handler: ", *((int*)(p->tf->esp)));
 
           p->tf->esp -= 8;
           // jump to the corresponding sa_handler
-          cprintf("%s%d\n", "eip value before: ", p->tf->eip);
+          // cprintf("%s%d\n", "eip value before: ", p->tf->eip);
           p->tf->eip = (uint)p->handlers[i];
           // break;
-          cprintf("%s%d\n", "eip value after: ", p->tf->eip);
+          // cprintf("%s%d\n", "eip value after: ", p->tf->eip);
 
-          cprintf("%s%d\n", "proc pending before changing: ", p->pending);
+          // cprintf("%s%d\n", "proc pending before changing: ", p->pending);
         p->pending = (p->pending ^ (1u << i));
-        cprintf("%s%d\n", "proc pending after handling: ", p->pending);
+        // cprintf("%s%d\n", "proc pending after handling: ", p->pending);
         // @TODO: check if needed
         break;
         }
 
         // Turn off the pending bit of the signal we handled
-        cprintf("%s%d\n", "proc pending before changing: ", p->pending);
+        // cprintf("%s%d\n", "proc pending before changing: ", p->pending);
         p->pending = (p->pending ^ (1u << i));
-        cprintf("%s%d\n", "proc pending after handling: ", p->pending);
+        // cprintf("%s%d\n", "proc pending after handling: ", p->pending);
         
       }
     }

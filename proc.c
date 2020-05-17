@@ -583,14 +583,14 @@ kill(int pid, int signum)
   pushcli();
   for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
     if(p->pid == pid){
-      cprintf("%s%d\n", "p pending before: ", p->pending);
+      // cprintf("%s%d\n", "p pending before: ", p->pending);
       // Update pending bit atomically
       uint old_pending;
       do{
         old_pending = p->pending;
       } while(!cas(&p->pending, old_pending, (p->pending | (1u << signum))));
 
-      cprintf("%s%d\n", "p pending after: ", p->pending);
+      // cprintf("%s%d\n", "p pending after: ", p->pending);
       
       // Wake process from sleep if necessary
       if(signum == SIGKILL && (p->state == SLEEPING || p->state == -SLEEPING)){
@@ -700,7 +700,7 @@ sigret (void)
 	// Realese user space signal lock
    p->handling_user_signal = 0;
 
-  cprintf("I'm in sigret!\n");
+  // cprintf("I'm in sigret!\n");
   // Restore process mask state
    p->mask = p->mask_backup;
    
