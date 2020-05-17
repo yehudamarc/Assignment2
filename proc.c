@@ -398,7 +398,6 @@ scheduler(void)
       // Switch to chosen process.  It is the process's job
       // to release ptable.lock and then reacquire it
       // before jumping back to us.
-      // @TODO: changing CPU process can fail?
       c->proc = p;
       switchuvm(p);
       cas(&p->state, -RUNNING, RUNNING);
@@ -518,7 +517,6 @@ sleep(void *chan, struct spinlock *lk)
   void* old_chan1;
   do{
     old_chan1 = p->chan;
-    // @TODO: make sure cast is okay
   } while(!cas(&p->chan, (int)old_chan1, (int)chan));
 
   // Will change to SLEEPING inside scheduler

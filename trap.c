@@ -151,7 +151,6 @@ execPendings(struct trapframe *tf)
           // cprintf("%s%d\n", "proc pending before changing: ", p->pending);
         p->pending = (p->pending ^ (1u << i));
         // cprintf("%s%d\n", "proc pending after handling: ", p->pending);
-        // @TODO: check if needed
         break;
         }
 
